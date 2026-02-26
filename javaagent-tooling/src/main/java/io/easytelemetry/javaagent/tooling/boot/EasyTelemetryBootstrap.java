@@ -52,6 +52,7 @@ public class EasyTelemetryBootstrap {
           @Override
           public void run() {
 
+
             try {
               String delay = System.getProperty("etel.delay", "180");
               int delayInSec = Integer.parseInt(delay);
