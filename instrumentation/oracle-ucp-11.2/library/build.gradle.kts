@@ -1,0 +1,27 @@
+plugins {
+  id("otel.library-instrumentation")
+  id("otel.nullaway-conventions")
+}
+
+dependencies {
+  library("com.oracle.database.jdbc:ucp:11.2.0.4")
+  library("com.oracle.database.jdbc:ojdbc8:12.2.0.1")
+
+  testImplementation(project(":instrumentation:oracle-ucp-11.2:testing"))
+}
+
+tasks {
+  test {
+    usesService(gradle.sharedServices.registrations["testcontainersBuildService"].service)
+  }
+
+  val testStableSemconv by registering(Test::class) {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    jvmArgs("-Dotel.semconv-stability.opt-in=database")
+  }
+
+  check {
+    dependsOn(testStableSemconv)
+  }
+}

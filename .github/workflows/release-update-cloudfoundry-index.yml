@@ -1,0 +1,63 @@
+# This action updates the CloudFoundry java-buildpack release index after each release.
+# See https://github.com/cloudfoundry/java-buildpack/blob/main/docs/extending-repositories.md
+# Prerequisite: the repo must have a branch named "cloudfoundry".
+
+name: Update cloudfoundry release index
+on:
+  schedule:
+    - cron: '25 4 * * *' # Daily at 4:25 AM UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update-cloudfoundry-index-yml:
+    permissions:
+      contents: write # for git push to PR branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+        # need to run this script before we switch branches
+        # since the script doesn't exist on the cloudfoundry branch
+      - name: Use CLA approved github bot
+        run: .github/scripts/use-cla-approved-bot.sh
+
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: 'cloudfoundry'
+
+      - name: create working branch
+        run: git checkout -b otelbot/cloudfoundry-${{ github.run_number }}-${{ github.run_attempt }}
+
+      - name: update index.yml
+        run: |
+          wget https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/maven-metadata.xml
+          grep -oP '(?<=<version>)[^<]+' maven-metadata.xml | sed -E 's/(.*)/\1: https:\/\/repo1.maven.org\/maven2\/io\/opentelemetry\/javaagent\/opentelemetry-javaagent\/\1\/opentelemetry-javaagent-\1.jar/' > index.yml
+
+      - name: display changes
+        run: git diff
+
+      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: otelbot-token
+        with:
+          app-id: ${{ vars.OTELBOT_APP_ID }}
+          private-key: ${{ secrets.OTELBOT_PRIVATE_KEY }}
+
+      - name: create pr with repo changes
+        env:
+          # not using secrets.GITHUB_TOKEN since pull requests from that token do not run workflows
+          GH_TOKEN: ${{ steps.otelbot-token.outputs.token }}
+        run: |
+          git add index.yml
+          if git diff-index --quiet --cached HEAD ; then
+            echo "index.yml already current"
+            exit 0
+          fi
+          git commit -m "Updated index.yml"
+          git push --set-upstream origin otelbot/cloudfoundry-${{ github.run_number }}-${{ github.run_attempt }}
+          gh pr create --base cloudfoundry \
+            --head otelbot/cloudfoundry-${{ github.run_number }}-${{ github.run_attempt }} \
+            --title 'Release updates for Cloudfoundry Repo' \
+            --body '[Created by Github action]'

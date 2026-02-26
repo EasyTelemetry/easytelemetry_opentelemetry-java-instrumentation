@@ -1,0 +1,27 @@
+name: Daily GraalVM native tests
+
+on:
+  schedule:
+    # daily at 4:00 UTC
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  graalvm-native-tests:
+    uses: ./.github/workflows/reusable-native-tests.yml
+    with:
+      test-latest-deps: true
+
+  workflow-notification:
+    permissions:
+      contents: read
+      issues: write
+    needs:
+      - graalvm-native-tests
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-notification.yml
+    with:
+      success: ${{ needs.graalvm-native-tests.result == 'success' }}

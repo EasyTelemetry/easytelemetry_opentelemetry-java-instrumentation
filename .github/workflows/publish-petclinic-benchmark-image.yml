@@ -1,0 +1,50 @@
+name: Publish PetClinic benchmark image
+on:
+  push:
+    paths:
+      - "benchmark-overhead/Dockerfile.petclinic"
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Login to GitHub container registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create timestamp for docker image tag
+        run: echo "TS=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+
+      - name: Push to GitHub packages
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          push: true
+          file: benchmark-overhead/Dockerfile.petclinic
+          tags: ghcr.io/open-telemetry/opentelemetry-java-instrumentation/petclinic-rest-base:${{ env.TS }}
+
+  workflow-notification:
+    permissions:
+      contents: read
+      issues: write
+    needs:
+      - publish
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-notification.yml
+    with:
+      success: ${{ needs.publish.result == 'success' }}

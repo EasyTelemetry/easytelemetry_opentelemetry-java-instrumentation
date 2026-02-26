@@ -1,0 +1,58 @@
+plugins {
+  id("otel.javaagent-instrumentation")
+}
+
+muzzle {
+  pass {
+    group.set("io.kubernetes")
+    module.set("client-java-api")
+    versions.set("[7.0.0,)")
+    assertInverse.set(true)
+  }
+}
+
+dependencies {
+  library("io.kubernetes:client-java-api:7.0.0")
+
+  testInstrumentation(project(":instrumentation:okhttp:okhttp-3.0:javaagent"))
+
+  latestDepTestLibrary("io.kubernetes:client-java-api:19.+") // see test suite below
+}
+
+testing {
+  suites {
+    val version20Test by registering(JvmTestSuite::class) {
+      dependencies {
+        if (findProperty("testLatestDeps") as Boolean) {
+          implementation("io.kubernetes:client-java-api:latest.release")
+        } else {
+          implementation("io.kubernetes:client-java-api:20.0.0")
+        }
+      }
+    }
+  }
+}
+
+tasks {
+  check {
+    dependsOn(testing.suites)
+  }
+}
+
+tasks {
+  withType<Test>().configureEach {
+    systemProperty("collectMetadata", findProperty("collectMetadata")?.toString() ?: "false")
+  }
+
+  val testExperimental by registering(Test::class) {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+
+    jvmArgs("-Dotel.instrumentation.kubernetes-client.experimental-span-attributes=true")
+    systemProperty("metadataConfig", "otel.instrumentation.kubernetes-client.experimental-span-attributes=true")
+  }
+
+  check {
+    dependsOn(testExperimental)
+  }
+}

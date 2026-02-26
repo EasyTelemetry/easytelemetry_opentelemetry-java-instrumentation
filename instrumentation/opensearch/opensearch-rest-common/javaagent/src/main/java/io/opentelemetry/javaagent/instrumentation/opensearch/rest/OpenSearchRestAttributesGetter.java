@@ -1,0 +1,47 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package io.opentelemetry.javaagent.instrumentation.opensearch.rest;
+
+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.internal.DbResponseStatusUtil.dbResponseStatusCode;
+
+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientAttributesGetter;
+import io.opentelemetry.semconv.incubating.DbIncubatingAttributes;
+import javax.annotation.Nullable;
+
+final class OpenSearchRestAttributesGetter
+    implements DbClientAttributesGetter<OpenSearchRestRequest, OpenSearchRestResponse> {
+
+  @SuppressWarnings("deprecation") // using deprecated DbSystemIncubatingValues
+  @Override
+  public String getDbSystem(OpenSearchRestRequest request) {
+    return DbIncubatingAttributes.DbSystemIncubatingValues.OPENSEARCH;
+  }
+
+  @Override
+  @Nullable
+  public String getDbNamespace(OpenSearchRestRequest request) {
+    return null;
+  }
+
+  @Override
+  @Nullable
+  public String getDbQueryText(OpenSearchRestRequest request) {
+    return request.getMethod() + " " + request.getOperation();
+  }
+
+  @Override
+  @Nullable
+  public String getDbOperationName(OpenSearchRestRequest request) {
+    return request.getMethod();
+  }
+
+  @Nullable
+  @Override
+  public String getResponseStatus(
+      @Nullable OpenSearchRestResponse response, @Nullable Throwable error) {
+    return response != null ? dbResponseStatusCode(response.getStatusCode()) : null;
+  }
+}

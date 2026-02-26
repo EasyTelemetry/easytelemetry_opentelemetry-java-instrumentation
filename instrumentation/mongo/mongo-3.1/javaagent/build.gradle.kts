@@ -1,0 +1,42 @@
+plugins {
+  id("otel.javaagent-instrumentation")
+}
+
+muzzle {
+  pass {
+    group.set("org.mongodb")
+    module.set("mongo-java-driver")
+    versions.set("[3.1,)")
+    assertInverse.set(true)
+  }
+}
+
+dependencies {
+  implementation(project(":instrumentation:mongo:mongo-3.1:library"))
+
+  library("org.mongodb:mongo-java-driver:3.1.0")
+
+  testImplementation(project(":instrumentation:mongo:mongo-3.1:testing"))
+
+  testInstrumentation(project(":instrumentation:mongo:mongo-async-3.3:javaagent"))
+  testInstrumentation(project(":instrumentation:mongo:mongo-3.7:javaagent"))
+  testInstrumentation(project(":instrumentation:mongo:mongo-4.0:javaagent"))
+}
+
+tasks {
+  withType<Test>().configureEach {
+    usesService(gradle.sharedServices.registrations["testcontainersBuildService"].service)
+    systemProperty("collectMetadata", findProperty("collectMetadata")?.toString() ?: "false")
+  }
+
+  val testStableSemconv by registering(Test::class) {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    jvmArgs("-Dotel.semconv-stability.opt-in=database")
+    systemProperty("metadataConfig", "otel.semconv-stability.opt-in=database")
+  }
+
+  check {
+    dependsOn(testStableSemconv)
+  }
+}

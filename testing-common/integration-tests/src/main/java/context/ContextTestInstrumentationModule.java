@@ -1,0 +1,38 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package context;
+
+import static java.util.Collections.singletonList;
+
+import com.google.auto.service.AutoService;
+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
+import io.opentelemetry.javaagent.extension.instrumentation.internal.ExperimentalInstrumentationModule;
+import java.util.List;
+
+@AutoService(InstrumentationModule.class)
+public class ContextTestInstrumentationModule extends InstrumentationModule
+    implements ExperimentalInstrumentationModule {
+  public ContextTestInstrumentationModule() {
+    super("context-test-instrumentation");
+  }
+
+  @Override
+  public boolean isHelperClass(String className) {
+    String pkg = getClass().getPackage().getName();
+    return className.equals(pkg + ".Context") || className.equals(pkg + ".ContextTestSingletons");
+  }
+
+  @Override
+  public List<TypeInstrumentation> typeInstrumentations() {
+    return singletonList(new ContextTestInstrumentation());
+  }
+
+  @Override
+  public boolean isIndyReady() {
+    return true;
+  }
+}

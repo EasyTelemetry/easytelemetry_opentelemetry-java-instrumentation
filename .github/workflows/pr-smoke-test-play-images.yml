@@ -1,0 +1,20 @@
+name: PR build Play images for smoke tests
+
+on:
+  pull_request:
+    paths:
+      - "smoke-tests/images/play/**"
+      - ".github/workflows/pr-smoke-test-play-images.yml"
+      - ".github/workflows/reusable-pr-smoke-test-images.yml"
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-pr-smoke-test-images.yml
+    with:
+      project: ":smoke-tests:images:play"
+      cache-read-only: true

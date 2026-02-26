@@ -1,0 +1,50 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package io.opentelemetry.javaagent.instrumentation.servlet.v5_0.async;
+
+import static io.opentelemetry.javaagent.instrumentation.servlet.ServletHelper.CONTEXT_ATTRIBUTE;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.javaagent.bootstrap.CallDepth;
+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.ServletRequest;
+import net.bytebuddy.asm.Advice;
+
+@SuppressWarnings("unused")
+public class AsyncDispatchAdvice {
+
+  @Advice.OnMethodEnter(suppress = Throwable.class)
+  public static CallDepth enter(
+      @Advice.This AsyncContext context, @Advice.AllArguments Object[] args) {
+    CallDepth callDepth = CallDepth.forClass(AsyncContext.class);
+    if (callDepth.getAndIncrement() > 0) {
+      return callDepth;
+    }
+
+    ServletRequest request = context.getRequest();
+
+    Context currentContext = Java8BytecodeBridge.currentContext();
+    Span currentSpan = Java8BytecodeBridge.spanFromContext(currentContext);
+    if (currentSpan.getSpanContext().isValid()) {
+      // this tells the dispatched servlet to use the current span as the parent for its work
+      // (if the currentSpan is not valid for some reason, the original servlet span should still
+      // be present in the same request attribute, and so that will be used)
+      //
+      // the original servlet span stored in the same request attribute does not need to be saved
+      // and restored on method exit, because dispatch() hands off control of the request
+      // processing, and nothing can be done with the request anymore after this
+      request.setAttribute(CONTEXT_ATTRIBUTE, currentContext);
+    }
+    return callDepth;
+  }
+
+  @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
+  public static void exit(@Advice.Enter CallDepth callDepth) {
+    callDepth.decrementAndGet();
+  }
+}

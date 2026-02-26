@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:b="http://www.springframework.org/schema/batch"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                      http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+  <import resource="baseContext.xml"/>
+
+  <b:job id="taskletJob">
+    <b:step id="step">
+      <b:tasklet ref="testTasklet"/>
+    </b:step>
+  </b:job>
+
+  <b:job id="itemsAndTaskletJob">
+    <b:step id="itemStep">
+      <b:tasklet>
+        <b:chunk commit-interval="5" reader="itemReader" processor="itemProcessor"
+          writer="itemWriter"/>
+      </b:tasklet>
+      <b:next on="*" to="taskletStep"/>
+    </b:step>
+    <b:step id="taskletStep">
+      <b:tasklet ref="testTasklet"/>
+    </b:step>
+  </b:job>
+
+  <b:job id="parallelItemsJob">
+    <b:step id="parallelItemsStep">
+      <b:tasklet task-executor="asyncTaskExecutor" throttle-limit="2">
+        <b:chunk commit-interval="2" reader="syncItemReader" processor="itemProcessor"
+          writer="itemWriter"/>
+      </b:tasklet>
+    </b:step>
+  </b:job>
+
+  <b:job id="flowJob">
+    <b:flow id="flow" parent="parentFlow"/>
+  </b:job>
+  <b:flow id="parentFlow">
+    <b:step id="flowStep1" next="flowStep2">
+      <b:tasklet ref="testTasklet"/>
+    </b:step>
+    <b:step id="flowStep2">
+      <b:tasklet ref="testTasklet"/>
+    </b:step>
+  </b:flow>
+
+  <b:job id="splitJob">
+    <b:split id="split" task-executor="asyncTaskExecutor">
+      <b:flow>
+        <b:step id="splitFlowStep1">
+          <b:tasklet ref="testTasklet"/>
+        </b:step>
+      </b:flow>
+      <b:flow>
+        <b:step id="splitFlowStep2">
+          <b:tasklet ref="testTasklet"/>
+        </b:step>
+      </b:flow>
+    </b:split>
+  </b:job>
+
+  <b:job id="decisionJob">
+    <b:step id="decisionStepStart" next="decision">
+      <b:tasklet ref="testTasklet"/>
+    </b:step>
+    <b:decision id="decision" decider="testDecider">
+      <b:next on="LEFT" to="decisionStepLeft"/>
+      <b:next on="RIGHT" to="decisionStepRight"/>
+    </b:decision>
+    <b:step id="decisionStepLeft">
+      <b:tasklet ref="testTasklet"/>
+    </b:step>
+    <b:step id="decisionStepRight">
+      <b:tasklet ref="testTasklet"/>
+    </b:step>
+  </b:job>
+
+  <b:job id="partitionedJob">
+    <b:step id="partitionManagerStep">
+      <b:partition step="partitionWorkerStep" partitioner="testPartitioner">
+        <b:handler task-executor="asyncTaskExecutor" grid-size="2"/>
+      </b:partition>
+    </b:step>
+  </b:job>
+  <b:step id="partitionWorkerStep">
+    <b:tasklet>
+      <b:chunk commit-interval="5" reader="testPartitionedItemReader" processor="itemProcessor"
+        writer="itemWriter"/>
+    </b:tasklet>
+  </b:step>
+  <bean id="testPartitioner" class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.TestPartitioner"/>
+  <bean id="testPartitionedItemReader" class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.TestPartitionedItemReader"/>
+
+  <b:job id="customSpanEventsItemsJob">
+    <b:step id="customSpanEventsItemStep">
+      <b:tasklet>
+        <b:chunk commit-interval="5" processor="itemProcessor" writer="itemWriter">
+          <b:reader>
+            <bean class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.SingleItemReader"/>
+          </b:reader>
+          <b:listeners>
+            <b:listener>
+              <bean class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.CustomEventStepListener"/>
+            </b:listener>
+            <b:listener>
+              <bean class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.CustomEventChunkListener"/>
+            </b:listener>
+            <b:listener>
+              <bean class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.CustomEventItemReadListener"/>
+            </b:listener>
+            <b:listener>
+              <bean class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.CustomEventItemProcessListener"/>
+            </b:listener>
+            <b:listener>
+              <bean class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.CustomEventItemWriteListener"/>
+            </b:listener>
+          </b:listeners>
+        </b:chunk>
+      </b:tasklet>
+    </b:step>
+    <b:listeners>
+      <b:listener>
+        <bean class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.CustomEventJobListener"/>
+      </b:listener>
+    </b:listeners>
+  </b:job>
+
+  <bean id="itemReader" class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.TestItemReader"/>
+  <bean id="syncItemReader" class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.TestSyncItemReader">
+    <constructor-arg name="max" value="5"/>
+  </bean>
+  <bean id="itemProcessor" class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.TestItemProcessor"/>
+  <bean id="itemWriter" class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.TestItemWriter"/>
+  <bean id="testTasklet" class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.TestTasklet"/>
+  <bean id="testDecider" class="io.opentelemetry.javaagent.instrumentation.spring.batch.v3_0.springbatch.TestDecider"/>
+</beans>

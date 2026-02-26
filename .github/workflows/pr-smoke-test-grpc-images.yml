@@ -1,0 +1,20 @@
+name: PR build gRPC images for smoke tests
+
+on:
+  pull_request:
+    paths:
+      - "smoke-tests/images/grpc/**"
+      - ".github/workflows/pr-smoke-test-grpc-images.yml"
+      - ".github/workflows/reusable-pr-smoke-test-images.yml"
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-pr-smoke-test-images.yml
+    with:
+      project: ":smoke-tests:images:grpc"
+      cache-read-only: true

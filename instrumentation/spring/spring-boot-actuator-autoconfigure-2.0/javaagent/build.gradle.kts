@@ -1,0 +1,58 @@
+plugins {
+  id("otel.javaagent-instrumentation")
+  id("otel.nullaway-conventions")
+}
+
+muzzle {
+  pass {
+    group.set("org.springframework.boot")
+    module.set("spring-boot-actuator-autoconfigure")
+    versions.set("[2.0.0.RELEASE,)")
+    extraDependency("io.micrometer:micrometer-core:1.5.0")
+    assertInverse.set(true)
+  }
+}
+
+val latestDepTest = findProperty("testLatestDeps") as Boolean
+
+dependencies {
+  library("org.springframework.boot:spring-boot-actuator-autoconfigure:2.0.0.RELEASE")
+  library("io.micrometer:micrometer-core:1.5.0")
+  testLibrary("io.micrometer:micrometer-registry-prometheus:1.0.1")
+
+  if (latestDepTest) {
+    // Micrometer moved into its own Spring Boot starter in version 4
+    testLibrary("org.springframework.boot:spring-boot-starter-micrometer-metrics:4.0.0")
+  }
+
+  implementation(project(":instrumentation:micrometer:micrometer-1.5:javaagent"))
+
+  // dependency management pins logback-classic to 1.3 which is the last release that supports java 8
+  latestDepTestLibrary("ch.qos.logback:logback-classic:latest.release")
+}
+
+tasks.withType<Test>().configureEach {
+  // required on jdk17
+  jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
+  jvmArgs("-XX:+IgnoreUnrecognizedVMOptions")
+
+  jvmArgs("-Dotel.instrumentation.spring-boot-actuator-autoconfigure.enabled=true")
+}
+
+// spring 6 (spring boot 3) requires java 17
+if (latestDepTest) {
+  otelJava {
+    minJavaVersionSupported.set(JavaVersion.VERSION_17)
+  }
+}
+
+// spring 6 (spring boot 3) uses slf4j 2.0
+if (!latestDepTest) {
+  configurations.testRuntimeClasspath {
+    resolutionStrategy {
+      // requires old logback (and therefore also old slf4j)
+      force("ch.qos.logback:logback-classic:1.2.11")
+      force("org.slf4j:slf4j-api:1.7.36")
+    }
+  }
+}

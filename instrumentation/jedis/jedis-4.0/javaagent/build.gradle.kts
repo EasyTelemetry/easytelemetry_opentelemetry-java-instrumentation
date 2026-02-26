@@ -1,0 +1,46 @@
+plugins {
+  id("otel.javaagent-instrumentation")
+}
+
+muzzle {
+  pass {
+    group.set("redis.clients")
+    module.set("jedis")
+    versions.set("[4.0.0-beta1,)")
+    skip("jedis-3.6.2")
+    assertInverse.set(true)
+  }
+}
+
+dependencies {
+  library("redis.clients:jedis:4.0.0-beta1")
+
+  compileOnly("com.google.auto.value:auto-value-annotations")
+  annotationProcessor("com.google.auto.value:auto-value")
+
+  implementation(project(":instrumentation:jedis:jedis-common:javaagent"))
+
+  testInstrumentation(project(":instrumentation:jedis:jedis-1.4:javaagent"))
+  testInstrumentation(project(":instrumentation:jedis:jedis-3.0:javaagent"))
+}
+
+tasks {
+  withType<Test>().configureEach {
+    // latest dep test fails because peer ip is 0:0:0:0:0:0:0:1 instead of 127.0.0.1
+    jvmArgs("-Djava.net.preferIPv4Stack=true")
+    usesService(gradle.sharedServices.registrations["testcontainersBuildService"].service)
+    systemProperty("collectMetadata", findProperty("collectMetadata")?.toString() ?: "false")
+  }
+
+  val testStableSemconv by registering(Test::class) {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+
+    jvmArgs("-Dotel.semconv-stability.opt-in=database")
+    systemProperty("metadataConfig", "otel.semconv-stability.opt-in=database")
+  }
+
+  check {
+    dependsOn(testStableSemconv)
+  }
+}

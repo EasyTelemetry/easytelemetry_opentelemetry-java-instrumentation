@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  common:
+    uses: ./.github/workflows/build-common.yml
+    secrets:
+      DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+      FLAKY_TEST_REPORTER_ACCESS_KEY: ${{ secrets.FLAKY_TEST_REPORTER_ACCESS_KEY }}
+
+  test-latest-deps:
+    # release branches are excluded
+    # because any time a new library version is released to maven central it can fail
+    # which requires unnecessary release branch maintenance, especially for patches
+    if: "!startsWith(github.ref_name, 'release/')"
+    uses: ./.github/workflows/reusable-test-latest-deps.yml
+    secrets:
+      DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+      FLAKY_TEST_REPORTER_ACCESS_KEY: ${{ secrets.FLAKY_TEST_REPORTER_ACCESS_KEY }}
+
+  muzzle:
+    # release branches are excluded
+    # because any time a new library version is released to maven central it can fail
+    # which requires unnecessary release branch maintenance, especially for patches
+    if: "!startsWith(github.ref_name, 'release/')"
+    uses: ./.github/workflows/reusable-muzzle.yml
+
+  link-check:
+    # release branches are excluded to avoid unnecessary maintenance if external links break
+    # (and also because the README.md javaagent download link has to be updated on release branches
+    #  before the release download has been published)
+    if: "!startsWith(github.ref_name, 'release/')"
+    uses: ./.github/workflows/reusable-link-check.yml
+
+  markdown-lint-check:
+    # release branches are excluded
+    if: "!startsWith(github.ref_name, 'release/')"
+    uses: ./.github/workflows/reusable-markdown-lint-check.yml
