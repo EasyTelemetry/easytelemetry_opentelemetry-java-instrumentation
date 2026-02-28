@@ -16,10 +16,7 @@ import static net.bytebuddy.matcher.ElementMatchers.any;
 import static net.bytebuddy.matcher.ElementMatchers.none;
 
 import io.easytelemetry.instrumentation.api.utils.ReflectionUtils;
-import io.easytelemetry.javaagent.tooling.ETelJava9Transformer;
 import io.easytelemetry.javaagent.tooling.config.applier.SampleRateApplier;
-import io.easytelemetry.javaagent.tooling.sample.ETelSampler;
-import io.easytelemetry.javaagent.tooling.util.ETelJava8Transformer;
 import io.opentelemetry.api.incubator.ExtendedOpenTelemetry;
 import io.opentelemetry.api.incubator.config.ConfigProvider;
 import io.opentelemetry.context.Context;
@@ -235,8 +232,6 @@ public class AgentInstaller {
     }
     LambdaTransformerHolder.setLambdaTransformer(lambdaTransformer);
 
-    //添加easytelemetry加密transformer
-    addEasyTelemetryTransformer(inst);
     //设置配置
     SampleRateApplier.setAutoConfiguredOpenTelemetrySdk(autoConfiguredSdk);
     //启动easytelemetry
@@ -695,14 +690,6 @@ public class AgentInstaller {
         }
         scope.close();
       };
-    }
-  }
-
-  private static void addEasyTelemetryTransformer(Instrumentation inst){
-    if (JavaModule.isSupported()) {
-      inst.addTransformer(new ETelJava9Transformer(), true);
-    }else {
-      inst.addTransformer(new ETelJava8Transformer(), true);
     }
   }
 }
