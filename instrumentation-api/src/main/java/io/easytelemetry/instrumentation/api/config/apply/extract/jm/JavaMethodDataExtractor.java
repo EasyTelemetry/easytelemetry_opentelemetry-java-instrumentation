@@ -9,6 +9,7 @@ import io.easytelemetry.instrumentation.api.utils.SpanContext;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.instrumentation.api.instrumenter.LocalRootSpan;
+
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.logging.Level;
@@ -111,15 +112,14 @@ public class JavaMethodDataExtractor {
       return;
     }
     AttributeKey key = entity.getAttributeKey();
-    if (key != null) {
-      span.setAttribute(key, tagValue);
-      return;
-    }
-    key = JsonExtractor.commonSetTag(tagValue, entity.getTagKey(), span);
     if (key == null) {
-      logger.log(Level.SEVERE, "Illegal json expression! Final data isn not primitive or string!");
-      return;
+      key = JsonExtractor.buildAttributeKey(tagValue, entity.getTagKey());
+      if (key == null) {
+        logger.log(Level.SEVERE, "Illegal json expression! Final data isn not primitive or string!");
+        return;
+      }
+      entity.setAttributeKey(key);
     }
-    entity.setAttributeKey(key);
+    span.setAttribute(key, entity.convertTagValue(tagValue));
   }
 }

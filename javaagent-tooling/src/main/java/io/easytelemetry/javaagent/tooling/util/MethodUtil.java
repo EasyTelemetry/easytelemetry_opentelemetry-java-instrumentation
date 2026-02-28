@@ -1,16 +1,8 @@
 package io.easytelemetry.javaagent.tooling.util;
 
 
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.CLASS;
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.CLASS_NAME;
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.DESC;
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.HASHCODE;
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.METHOD;
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.METHOD_NAME;
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.PARAM_TYPES;
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.STATIC_FLAG;
-
 import io.easytelemetry.instrumentation.api.utils.ReflectionUtils;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
@@ -19,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.*;
 
 public class MethodUtil {
 
@@ -66,6 +60,30 @@ public class MethodUtil {
         || descriptor.endsWith("java/lang/Byte;") || descriptor.endsWith("java/lang/Character;")
         || descriptor.endsWith("java/lang/Short;") || descriptor.endsWith("java/lang/Double;") || descriptor.endsWith(
         "java/lang/Float;") || descriptor.endsWith("java/lang/Long;");
+  }
+
+  public static Class convertToPrimitiveType(char c){
+    switch (c){
+      case 'I':
+        return int.class;
+      case 'V':
+        return Void.class;
+      case 'Z':
+        return boolean.class;
+      case 'B':
+        return byte.class;
+      case 'C':
+        return char.class;
+      case 'S':
+        return short.class;
+      case 'D':
+        return double.class;
+      case 'F':
+        return float.class;
+      case 'J':
+        return long.class;
+    }
+    return null;
   }
 
   private static void appendDescriptor(final Class<?> clazz, final StringBuilder stringBuilder) {

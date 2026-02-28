@@ -1,11 +1,11 @@
 package io.easytelemetry.javaagent.tooling.util;
 
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
-import org.jetbrains.annotations.Nullable;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author jiangjibo

@@ -12,4 +12,8 @@ public interface LocalVariableExtractor {
 
   int getVariableConfigIndex();
 
+  void serVariableType(Class type);
+
+  Class getVariableType();
+
 }

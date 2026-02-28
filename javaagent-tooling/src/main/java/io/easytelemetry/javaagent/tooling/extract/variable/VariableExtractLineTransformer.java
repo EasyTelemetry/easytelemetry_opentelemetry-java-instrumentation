@@ -2,11 +2,7 @@ package io.easytelemetry.javaagent.tooling.extract.variable;
 
 import io.easytelemetry.instrumentation.api.utils.ReflectionUtils;
 import io.easytelemetry.javaagent.tooling.util.MethodUtil;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.reflect.Method;

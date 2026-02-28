@@ -12,12 +12,14 @@ import java.util.logging.Logger;
  * @version 1.0
  * @since 2026/2/18
  */
-public class JsonObjectExtractor {
+public class JsonObjectExtractor<T> {
 
   private static final Logger logger = Logger.getLogger(JsonObjectExtractor.class.getName());
 
   protected String tagKey;
   protected AttributeKey attributeKey;
+
+  private Class valueType;
 
   protected String expression;
   protected JsonTokenExtractor[] jsonTokenExtractors;
@@ -49,13 +51,25 @@ public class JsonObjectExtractor {
     }
 
     if (attributeKey == null) {
-      attributeKey = JsonExtractor.commonSetTag(tagValue, tagKey, span);
+      valueType = tagValue.getClass();
+      attributeKey = JsonExtractor.buildAttributeKey(tagValue, tagKey);
       if (attributeKey == null) {
         logger.log(Level.SEVERE, "Illegal json expression! Final data isn not primitive or string!");
         return;
       }
     }
-    span.setAttribute(attributeKey, tagValue);
+    span.setAttribute(attributeKey, convertTagValue(tagValue));
+  }
+
+  public Object convertTagValue(Object tagValue) {
+    if (valueType == Integer.class) {
+      return ((Integer) tagValue).longValue();
+    } else if (valueType == Float.class) {
+      return ((Float) tagValue).doubleValue();
+    } else if (valueType == Boolean.class) {
+      return ((Boolean) tagValue).booleanValue();
+    }
+    return tagValue;
   }
 
   public AttributeKey getAttributeKey() {
@@ -64,6 +78,10 @@ public class JsonObjectExtractor {
 
   public void setAttributeKey(AttributeKey attributeKey) {
     this.attributeKey = attributeKey;
+  }
+
+  public Class getValueType() {
+    return valueType;
   }
 
   public void setJsonTokenExtractors(JsonTokenExtractor[] jsonTokenExtractors) {

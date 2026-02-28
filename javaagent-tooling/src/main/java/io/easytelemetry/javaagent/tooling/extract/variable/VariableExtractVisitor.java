@@ -1,14 +1,14 @@
 package io.easytelemetry.javaagent.tooling.extract.variable;
 
-import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 
 import io.easytelemetry.instrumentation.api.config.apply.extract.DataExtractingEntity;
 import io.easytelemetry.instrumentation.api.config.apply.extract.LocalVariableExtractor;
+import io.easytelemetry.javaagent.tooling.util.CommonVisitor;
 import io.easytelemetry.javaagent.tooling.util.MethodUtil;
+import java.util.List;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
-import java.util.List;
 
 /**
  * @author jiangjibo
@@ -33,7 +33,7 @@ public class VariableExtractVisitor extends MethodVisitor {
       for (LocalVariableExtractor extractor : lineEntities) {
         DataExtractingEntity entity = (DataExtractingEntity) extractor;
         mv.visitLdcInsn(entity.getVariableConfigIndex());
-        mv.visitVarInsn(ALOAD, entity.getVariableIndex());
+        CommonVisitor.applyPrimitiveTypeWrapping(mv, entity.getVariableType(), extractor.getVariableIndex());
         mv.visitMethodInsn(INVOKESTATIC, ETelExtractVariableSpy.ADVICE_CLASS,
             ETelExtractVariableSpy.extractVariableMethod.getName(),
             MethodUtil.getMethodDescriptor(ETelExtractVariableSpy.extractVariableMethod), false);

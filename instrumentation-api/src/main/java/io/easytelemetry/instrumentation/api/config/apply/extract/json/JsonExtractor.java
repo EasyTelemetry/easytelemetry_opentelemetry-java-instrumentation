@@ -1,7 +1,6 @@
 package io.easytelemetry.instrumentation.api.config.apply.extract.json;
 
 import io.opentelemetry.api.common.AttributeKey;
-import io.opentelemetry.api.trace.Span;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,23 +36,19 @@ public class JsonExtractor {
     return executorList.toArray(new JsonTokenExtractor[0]);
   }
 
-  public static AttributeKey commonSetTag(Object data, String tagKey, Span rootSpan) {
+  public static AttributeKey buildAttributeKey(Object data, String tagKey) {
     AttributeKey key = null;
     if (data instanceof String) {
       key = AttributeKey.stringKey(tagKey);
-      rootSpan.setAttribute(key, (String) data);
     } else if (data instanceof Number) {
       Class<?> clazz = data.getClass();
       if(clazz == double.class || clazz == Double.class || clazz == float.class || clazz == Float.class){
         key = AttributeKey.doubleKey(tagKey);
-        rootSpan.setAttribute(tagKey, ((Number) data).doubleValue());
       }else{
         key = AttributeKey.longKey(tagKey);
-        rootSpan.setAttribute(tagKey, ((Number) data).longValue());
       }
     } else if (data instanceof Boolean) {
       key = AttributeKey.booleanKey(tagKey);
-      rootSpan.setAttribute(tagKey, (boolean) data);
     }
     return key;
   }

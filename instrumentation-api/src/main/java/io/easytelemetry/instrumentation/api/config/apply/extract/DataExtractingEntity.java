@@ -1,6 +1,5 @@
 package io.easytelemetry.instrumentation.api.config.apply.extract;
 
-import io.opentelemetry.api.common.AttributeKey;
 import java.util.Map;
 import java.util.Objects;
 
@@ -12,6 +11,7 @@ public class DataExtractingEntity extends JsonObjectExtractor implements LocalVa
 
   private String variable;
   private Integer variableIndex;
+  private Class variableType;
   private Integer lineNumber;
 
   private String javaMethodDesc;
@@ -109,5 +109,14 @@ public class DataExtractingEntity extends JsonObjectExtractor implements LocalVa
 
   public void setVariableIndex(Integer variableIndex) {
     this.variableIndex = variableIndex;
+  }
+
+  @Override
+  public void serVariableType(Class type) {
+    this.variableType = type;
+  }
+
+  public Class getVariableType() {
+    return variableType;
   }
 }

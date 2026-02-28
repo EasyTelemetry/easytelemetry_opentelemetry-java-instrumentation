@@ -2,6 +2,7 @@ package io.easytelemetry.javaagent.tooling.extract.variable;
 
 import io.easytelemetry.instrumentation.api.config.apply.extract.LocalVariableExtractor;
 import io.easytelemetry.instrumentation.api.utils.Pair;
+import io.easytelemetry.javaagent.tooling.util.MethodUtil;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +40,7 @@ public class VariableExtractLineIntrospection {
     maxLineNumber = Math.max(maxLineNumber, line);
   }
 
-  final void visitLocalVariable(String name, Label start, Label end, int index) {
+  final void visitLocalVariable(String name, String descriptor, Label start, Label end, int index) {
     if (errorMsg != null) {
       return;
     }
@@ -63,7 +64,7 @@ public class VariableExtractLineIntrospection {
     Collection<Integer> values = labelStartLine.values();
     for (LocalVariableExtractor entity : entities) {
       Integer lineNumber = entity.getLineNumber();
-      if(!values.contains(lineNumber)){
+      if (!values.contains(lineNumber)) {
         errorMsg = "Variable " + name + " is not in the scope of line " + lineNumber;
         return;
       }
@@ -82,8 +83,14 @@ public class VariableExtractLineIntrospection {
     variableSlotIndex.put(name, index);
     variableScopeLineEndpoint.put(name, Pair.of(startLine, endLine));
 
+    Class type = null;
+    if (descriptor.length() == 1) {
+      type = MethodUtil.convertToPrimitiveType(descriptor.charAt(0));
+    }
+
     for (LocalVariableExtractor entity : entities) {
       entity.setVariableIndex(index);
+      entity.serVariableType(type);
     }
   }
 

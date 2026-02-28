@@ -1,9 +1,10 @@
 package io.easytelemetry.instrumentation.api.config.apply.extract.json;
 
 import io.easytelemetry.instrumentation.api.utils.ReflectionUtils;
+
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.Map;
-import java.lang.reflect.Field;
 
 /**
  * @author jiangjibo

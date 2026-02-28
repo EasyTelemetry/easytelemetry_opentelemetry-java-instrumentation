@@ -6,6 +6,7 @@ package io.easytelemetry.instrumentation.api.spy;
  * @since 2026/1/9
  */
 public class SpyAPI {
+
   // ############################################ 方法参数/返回值采集 ############################################
 
   public static final AbstractExtractSpy EXTRACT_METHOD_NOP_SPY = new NO_EXTRACT_SPY();
@@ -58,4 +59,5 @@ public class SpyAPI {
     public void extractVariable(int index, Object variableValue) {
     }
   }
+
 }

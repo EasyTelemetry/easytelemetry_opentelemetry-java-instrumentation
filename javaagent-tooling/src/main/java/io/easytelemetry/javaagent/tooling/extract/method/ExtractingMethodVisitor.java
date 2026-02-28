@@ -1,24 +1,18 @@
 package io.easytelemetry.javaagent.tooling.extract.method;
 
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.TIMING;
-import static org.objectweb.asm.Opcodes.ALOAD;
-import static org.objectweb.asm.Opcodes.ARETURN;
-import static org.objectweb.asm.Opcodes.DUP;
-import static org.objectweb.asm.Opcodes.DUP2;
-import static org.objectweb.asm.Opcodes.INVOKESTATIC;
-import static org.objectweb.asm.Opcodes.IRETURN;
-import static org.objectweb.asm.Opcodes.RETURN;
-import static org.objectweb.asm.Opcodes.SWAP;
-
 import io.easytelemetry.instrumentation.api.config.apply.extract.DataExtractingEntity;
 import io.easytelemetry.instrumentation.api.config.apply.extract.JavaMethodExtractTimingEnum;
+import io.easytelemetry.javaagent.tooling.util.CommonVisitor;
 import io.easytelemetry.javaagent.tooling.util.MethodUtil;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+
+import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.TIMING;
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  * @author jiangjibo
@@ -29,6 +23,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
 
   private int maxVarIndex;
   private boolean isStatic;
+  private Method method;
   private List<DataExtractingEntity> enterParamEntities = new ArrayList<>();
   private List<DataExtractingEntity> exitParamEntities = new ArrayList<>();
   private List<DataExtractingEntity> exitRetEntities = new ArrayList<>();
@@ -36,6 +31,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
   protected ExtractingMethodVisitor(int api, MethodVisitor methodVisitor, Method method,
       List<DataExtractingEntity> entityConfigs) {
     super(api, methodVisitor);
+    this.method = method;
     this.isStatic = Modifier.isStatic(method.getModifiers());
     for (DataExtractingEntity entity : entityConfigs) {
       switch (entity.getSourceType()) {
@@ -74,9 +70,7 @@ public class ExtractingMethodVisitor extends MethodVisitor {
   @Override
   public void visitVarInsn(int opcode, int varIndex) {
     super.visitVarInsn(opcode, varIndex);
-    if (maxVarIndex < varIndex) {
-      maxVarIndex = varIndex;
-    }
+    maxVarIndex = Math.max(maxVarIndex, varIndex);
   }
 
   @Override
@@ -89,7 +83,9 @@ public class ExtractingMethodVisitor extends MethodVisitor {
       int index = entity.getVariableConfigIndex();
       int paramIndex = entity.getExpression().charAt(3) - 48;
       mv.visitLdcInsn(index);
-      mv.visitVarInsn(ALOAD, isStatic ? paramIndex : paramIndex + 1);
+
+      CommonVisitor.applyPrimitiveTypeWrapping(mv, entity.getVariableType(), isStatic ? paramIndex : paramIndex + 1);
+
       mv.visitMethodInsn(INVOKESTATIC, ETelExtractMethodSpy.ADVICE_CLASS,
           ETelExtractMethodSpy.extractParamMethod.getName(),
           MethodUtil.getMethodDescriptor(ETelExtractMethodSpy.extractParamMethod), false);
@@ -97,11 +93,30 @@ public class ExtractingMethodVisitor extends MethodVisitor {
   }
 
   private void doReturnExtract(int opcode, List<DataExtractingEntity> entityList) {
+    int tempVarIndex = maxVarIndex + 2;
+
     for (int i = 0; i < entityList.size(); i++) {
       DataExtractingEntity entity = entityList.get(i);
       mv.visitInsn(opcode == Opcodes.LRETURN || opcode == Opcodes.DRETURN ? DUP2 : DUP);
+      switch (opcode) {
+        case IRETURN:
+          mv.visitVarInsn(ISTORE, tempVarIndex);
+          break;
+        case LRETURN:
+          mv.visitVarInsn(LSTORE, tempVarIndex);
+          break;
+        case FRETURN:
+          mv.visitVarInsn(FSTORE, tempVarIndex);
+          break;
+        case DRETURN:
+          mv.visitVarInsn(DSTORE, tempVarIndex);
+          break;
+        default:
+          mv.visitVarInsn(ASTORE, tempVarIndex);
+          break;
+      }
       mv.visitLdcInsn(entity.getVariableConfigIndex());
-      mv.visitInsn(SWAP);
+      CommonVisitor.applyPrimitiveTypeWrapping(mv, method.getReturnType(), tempVarIndex);
       mv.visitMethodInsn(INVOKESTATIC, ETelExtractMethodSpy.ADVICE_CLASS,
           ETelExtractMethodSpy.extractReturnMethod.getName(),
           MethodUtil.getMethodDescriptor(ETelExtractMethodSpy.extractReturnMethod), false);

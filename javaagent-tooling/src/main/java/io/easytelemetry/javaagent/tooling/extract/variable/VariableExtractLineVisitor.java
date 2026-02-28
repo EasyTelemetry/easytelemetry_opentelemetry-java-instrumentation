@@ -12,7 +12,8 @@ public class VariableExtractLineVisitor extends MethodVisitor {
 
   private VariableExtractLineIntrospection lineIntrospection;
 
-  public VariableExtractLineVisitor(int api, MethodVisitor methodVisitor, VariableExtractLineIntrospection lineIntrospection) {
+  public VariableExtractLineVisitor(int api, MethodVisitor methodVisitor,
+      VariableExtractLineIntrospection lineIntrospection) {
     super(api, methodVisitor);
     this.lineIntrospection = lineIntrospection;
   }
@@ -26,6 +27,6 @@ public class VariableExtractLineVisitor extends MethodVisitor {
   @Override
   public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end, int index) {
     super.visitLocalVariable(name, descriptor, signature, start, end, index);
-    lineIntrospection.visitLocalVariable(name, start, end, index);
+    lineIntrospection.visitLocalVariable(name, descriptor, start, end, index);
   }
 }

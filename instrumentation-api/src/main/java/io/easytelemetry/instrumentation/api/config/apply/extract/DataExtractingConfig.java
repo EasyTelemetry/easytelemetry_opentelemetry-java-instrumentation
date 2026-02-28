@@ -1,13 +1,16 @@
 package io.easytelemetry.instrumentation.api.config.apply.extract;
 
+import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.CLASS_NAME;
+import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.DESC;
+import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.METHOD_NAME;
+import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.PARAM_TYPES;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static io.easytelemetry.instrumentation.api.config.ETelConfigApplier.*;
 
 public class DataExtractingConfig {
 
